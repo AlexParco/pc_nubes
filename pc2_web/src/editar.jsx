@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button, Modal, Container, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
+import {URL} from './utils/config'
 
 export const Editar = ({
   setPacientes,
@@ -33,7 +34,7 @@ export const Editar = ({
   const handleSubmit = () => {
     const formData = new FormData()
     if(file !== null) {
-      fetch('/upload',{
+      fetch(URL + 'upload',{
         method: 'POST',
         body: formData
       })
@@ -49,7 +50,7 @@ export const Editar = ({
       especialidad: especialidad.split(","),
       image: image ? image : oldImageUrl 
     }, 'update edit')
-    fetch('/update/' + idPaciente, {
+    fetch(URL + 'update/' + idPaciente, {
       method: 'PUT',
       headers: {
         'Content-type': 'application/json',

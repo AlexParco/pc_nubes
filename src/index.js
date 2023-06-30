@@ -1,8 +1,15 @@
 require('dotenv').config()
 const express = require('express')
-const {PacienteModel} = require('./models')
+const { PacienteModel, UserModel} = require('./models')
 const fileUpload = require('express-fileupload');
-const { uploadFile, parseStudent, deleteFile } = require('./helpers');
+const { 
+    uploadFile, 
+    bodyMessage, 
+    mg,
+    hashPassword, 
+    comparePassword 
+} = require('./helpers');
+const bcrypt = require('bcrypt')
 const cors = require('cors')
 const path = require('path')
 const app = express()
@@ -16,9 +23,127 @@ app.use(fileUpload({
 
 const erroHandler = (err, req, res, next) => {
     res.status(404).send({
-        "message": err.message
+        "message": err.message,
+        "ok": false
     })
 }
+
+app.post('/auth/resetpassword' , async (req, res, next) => {
+    try {
+        const { email, newpassword } = req.body
+        const user = await UserModel.findOne({email: email}) 
+
+        if(!user) {
+            throw Error("email no registrado")
+        }
+
+        for(const password of user.passwordHistory.slice(0, 4)) {
+            if(await comparePassword(newpassword, password)) {
+                throw Error('la nueva contraseña no puede ser igual a las anteriores')
+            }
+        } 
+
+        await mg.messages.create(process.env.MAIL_DOMAIN, bodyMessage({
+            message: 'Contraseña restablecida',
+            to: email,
+            subject: 'TestWeb Contraseña',
+        }))
+        .then(msg => console.log({msg}))
+        .catch(err => console.error({err}));
+
+        encryptPassword = await hashPassword(newpassword)
+        await UserModel.findOneAndUpdate({email: email}, {
+            password: encryptPassword,
+            $push: {
+                passwordHistory: encryptPassword
+            },
+            isLocked: fals
+        })
+
+        res.json({
+            message: 'contraseña actualizada con exito',
+            ok: true
+        }).status(200)
+    } catch (error) {
+        next(error)
+    }
+})
+
+app.post('/auth/login', async (req, res, next) => {
+    try {
+        const { email, password } = req.body
+        const user = await UserModel.findOne({email: email})
+
+        if(user === null) {
+            throw Error('Usuario y/o Contraseña Incorrecta')
+        }
+
+        const result = await bcrypt.compare(password, user.password)
+        if(user.isLocked) {
+            throw Error('cambiar la contraseña para reactivar la cuenta')
+        }
+
+        if(!result) {
+            if(user.loginAttempts >= 2) {
+                await UserModel.findOneAndUpdate({email: email}, { 
+                    isLocked: 'true',
+                    loginAttempts: 0
+                })
+                return res.json({
+                    message: 'cuenta bloqueada'
+                })
+            }
+            await UserModel.findOneAndUpdate({email: email}, { 
+                $inc: { 
+                loginAttempts: 1 
+            }})
+            throw Error('Usuario o Contraseña Incorrecta')
+        }
+
+        const updatedUser = await UserModel.findOneAndUpdate({email: email}, { 
+            loginAttempts: 0
+        })
+
+        res.json({
+            user: updatedUser, 
+            ok: true
+        }).status(200)
+    } catch (error) {
+        next(error)
+    }
+})
+
+app.post('/auth/register', async(req, res, next) => {
+    try {
+        const { email, password } = req.body
+        if(!email || !password ){
+            throw Error("falta email y/o password")
+        }
+        console.log(req.body)
+
+        const user = await UserModel.findOne({email: email})
+        console.log(user)
+        if(user) {
+            throw Error("usuario ya registrado")
+        }
+
+        encryptPassword = await hashPassword(password)
+
+        UserModel.create({
+            email, 
+            password: encryptPassword, 
+            passwordHistory: [
+                encryptPassword
+            ]
+        })
+        res.json({
+            message: 'cuenta creada con exito',
+            ok: true
+        }).status(200)
+    } catch (error) {
+        next(error)
+    }
+})
 
 app.put('/update/:id', async(req, res, next) => {
     try{

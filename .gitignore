@@ -1,2 +1,4 @@
 node_modules/
 .env
+.connection.database
+pc2database.pem

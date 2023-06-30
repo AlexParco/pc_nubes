@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button, Modal, Container, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
+import {URL} from './utils/config'
 
 export const Crear = ({
   setPacientes
@@ -27,7 +28,7 @@ export const Crear = ({
     })
     .then(resp => resp.json())
     .then(res  => {
-      fetch('/register',{
+      fetch(URL + 'register',{
         method: 'POST',
         headers: {
           'Content-type': 'application/json',

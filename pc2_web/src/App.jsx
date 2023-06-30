@@ -3,9 +3,10 @@ import './App.css'
 import { Button, Modal, Container, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 import { Crear } from './crear';
 import { Editar } from './editar';
+import {URL} from './utils/config'
 
 
-function App() {
+function App({setRouter}) {
   const [pacientes, setPacientes] = useState([])
 
   // modal
@@ -13,7 +14,7 @@ function App() {
   const toggle = () => setModal(!modal);
   
   useEffect(() => {
-    fetch('/pacientes')
+    fetch(URL + 'pacientes')
     .then(resp => resp.json())
     .then(resp => {
       console.log(resp)
@@ -24,7 +25,7 @@ function App() {
 
 
   const handleDelete = (id) => {
-    fetch('/delete/' + id,{
+    fetch(URL + 'delete/' + id,{
       method: 'DELETE',
     })
     .then(res => {

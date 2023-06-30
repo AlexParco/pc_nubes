@@ -1,6 +1,12 @@
 const {PutObjectCommand, GetObjectCommand} = require('aws-sdk/clients/s3')
 const S3 = require('aws-sdk/clients/s3')
-const {getSignedUrl} = require('@aws-sdk/s3-request-presigner')
+const bcrypt = require('bcrypt')
+const formDataIm = require('form-data')
+const MailGun = require('mailgun.js')
+// const MailGun = require('mailgun-js')({
+//     apiKey: process.env.MAIL_APIKEY,
+//     domain: process.env.MAIL_DOMAIN
+// })
 const fs = require('fs')
 
 const storage = new S3({
@@ -44,8 +50,40 @@ function parseStudent(student, urlImage) {
     }
 } 
 
+async function hashPassword(password) {
+    const salt = await bcrypt.genSalt(10)
+    return await bcrypt.hash(password, salt)
+}
+
+async function comparePassword(password, currentPassword) {
+    return await bcrypt.compare(password, currentPassword)
+}
+
+const mailgun = new MailGun(formDataIm)
+
+console.log(process.env.MAIL_APIKEY)
+console.log(process.env.MAIL_USER)
+
+const mg = mailgun.client({
+    username: 'api',
+    key: process.env.MAIL_APIKEY,
+})
+
+const bodyMessage = ({message, to, subject}) => {
+    return {
+        from: `Mailgun Sandbox <${process.env.MAIL_DOMAIN_FROM}>`,
+        to: `${to}`,
+        subject: `${subject}`,
+        html: `${message}`
+    }
+}
+
 module.exports = {
     uploadFile,
     parseStudent,
-    deleteFile
+    deleteFile,
+    hashPassword,
+    comparePassword,
+    mg,
+    bodyMessage
 }
