@@ -1,1 +1,0 @@
-ssh -i "pc2database.pem" ubuntu@ec2-44-193-84-196.compute-1.amazonaws.com
